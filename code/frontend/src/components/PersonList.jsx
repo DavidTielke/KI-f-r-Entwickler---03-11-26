@@ -16,6 +16,7 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   const rowRefs = useRef(new Map())
   const lastTops = useRef(new Map())
   const anims = useRef(new Map())
+  const dragIdRef = useRef(null)
 
   // Wenn die Parent-Daten neu sind (Laden, Anlegen, Löschen), Zeilen zurücksetzen
   const [prevPersons, setPrevPersons] = useState(persons)
@@ -27,6 +28,9 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   // FLIP: verschobene Zeilen gleiten in ihre neue Position (220 ms, nur Transform).
   // Laufende Animationen werden zuerst abgebrochen, sonst misst getBoundingClientRect
   // Positionen inkl. der noch laufenden Verformung und neue FLIP-Animationen summieren sich.
+  // Waehrend eines Drags keine Animationen: FLIP-Transforms verschieben die Zeilen optisch
+  // und damit auch ihre Hit-Testing-Position. dragover trifft die noch gleitende Zeile und
+  // der Tausch oscilliert. Beim Ziehen also Snap; nur per Pfeil-Button gleiten die Zeilen.
   useLayoutEffect(() => {
     anims.current.forEach((a) => a.cancel())
     anims.current.clear()
@@ -36,16 +40,18 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
     const next = new Map()
     // Position relativ zur Tabelle (nicht zum Viewport), sonst verfälscht Scrollen jede Messung
     rowRefs.current.forEach((el, id) => next.set(id, el.getBoundingClientRect().top - base))
-    rowRefs.current.forEach((el, id) => {
-      const from = prev.get(id)
-      const to = next.get(id)
-      if (from !== undefined && to !== from && el.animate) {
-        anims.current.set(id, el.animate(
-          [{ transform: `translateY(${from - to}px)` }, { transform: 'translateY(0)' }],
-          { duration: 220, easing: 'ease-out' }
-        ))
-      }
-    })
+    if (dragIdRef.current === null) {
+      rowRefs.current.forEach((el, id) => {
+        const from = prev.get(id)
+        const to = next.get(id)
+        if (from !== undefined && to !== from && el.animate) {
+          anims.current.set(id, el.animate(
+            [{ transform: `translateY(${from - to}px)` }, { transform: 'translateY(0)' }],
+            { duration: 220, easing: 'ease-out' }
+          ))
+        }
+      })
+    }
     lastTops.current = next
   }, [rows])
 
@@ -67,6 +73,11 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   function handleDragStart(e, id) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', String(id))
+    // Laufende FLIP-Animationen aus einer Pfeil-Button-Verschiebung abbrechen,
+    // damit die Zeilen beim Drag-Start saubere Layout-Positionen haben
+    anims.current.forEach((a) => a.cancel())
+    anims.current.clear()
+    dragIdRef.current = id
     setDragId(id)
   }
 
@@ -84,6 +95,7 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
 
   function handleDragEnd() {
     if (dragId !== null) commit(rows)
+    dragIdRef.current = null
     setDragId(null)
     setArmedId(null)
     setFlashId(dragId)
