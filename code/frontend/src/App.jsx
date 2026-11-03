@@ -56,6 +56,16 @@ function App() {
     await loadPersons()
   }
 
+  async function handleReorder(ids) {
+    setPersons((prev) => ids.map((id) => prev.find((p) => p.id === id)).filter(Boolean))
+    try {
+      await personsApi.reorderPersons(ids)
+    } catch (err) {
+      await loadPersons()
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="dt-app">
       <aside className="dt-sidebar">
@@ -125,6 +135,7 @@ function App() {
                 persons={persons}
                 onEdit={(p) => setFormOpen(p)}
                 onDelete={(p) => setDeleteTarget(p)}
+                onReorder={handleReorder}
               />
             )}
           </section>

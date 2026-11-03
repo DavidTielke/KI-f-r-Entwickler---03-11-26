@@ -1,0 +1,28 @@
+@endpoint http://localhost:5215
+
+### GET alle Personen
+GET {{endpoint}}/api/persons
+
+### GET einzelne Person
+GET {{endpoint}}/api/persons/1
+
+### POST Person anlegen
+POST {{endpoint}}/api/persons
+Content-Type: application/json
+
+{
+  "name": "Alice",
+  "age": 30
+}
+
+### PUT Person aktualisieren
+PUT {{endpoint}}/api/persons/1
+Content-Type: application/json
+
+{
+  "name": "Alice Updated",
+  "age": 31
+}
+
+### DELETE Person löschen
+DELETE {{endpoint}}/api/persons/1

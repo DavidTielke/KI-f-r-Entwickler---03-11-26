@@ -44,3 +44,10 @@ export function updatePerson(id, data) {
 export function deletePerson(id) {
   return request(`${BASE}/${id}`, { method: 'DELETE' })
 }
+
+export function reorderPersons(ids) {
+  return request(`${BASE}/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ ids }),
+  })
+}

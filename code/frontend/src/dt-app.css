@@ -236,6 +236,8 @@ a:hover { color: var(--dt-orange); }
 .dt-reorder__arrow:last-child  { border-radius: 0 0 5px 5px; }
 .dt-reorder__arrow:hover:not(:disabled) { border-color: var(--dt-orange); color: var(--dt-orange); }
 .dt-reorder__arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+.dt-reorder__grip { transition: color 160ms; }
+.dt-table tbody tr:hover .dt-reorder__grip { color: var(--dt-ink); }
 
 /* Drag / flash states — apply to <tr> */
 .dt-row--dragging { opacity: 0.4; background: var(--dt-orange-soft); }

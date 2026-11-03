@@ -41,3 +41,32 @@ export function IconClose() {
     </svg>
   )
 }
+
+export function IconGrip(size = 16) {
+  return (
+    <svg {...iconProps(size)}>
+      <path d="M9 6h.01" />
+      <path d="M15 6h.01" />
+      <path d="M9 12h.01" />
+      <path d="M15 12h.01" />
+      <path d="M9 18h.01" />
+      <path d="M15 18h.01" />
+    </svg>
+  )
+}
+
+export function IconChevronUp(size = 16) {
+  return (
+    <svg {...iconProps(size)}>
+      <path d="m6 14 6-6 6 6" />
+    </svg>
+  )
+}
+
+export function IconChevronDown(size = 16) {
+  return (
+    <svg {...iconProps(size)}>
+      <path d="m6 10 6 6 6-6" />
+    </svg>
+  )
+}

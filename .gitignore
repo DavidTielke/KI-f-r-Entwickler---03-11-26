@@ -1,0 +1,42 @@
+# --- .NET / C# (ASP.NET Core) ---
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+*.cache
+Release/
+artifacts/
+
+# --- SQLite Datenbank ---
+*.db
+*.db-shm
+*.db-wal
+
+# --- Node.js / Vite ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Logs ---
+*.log
+logs/
+dev.log
+dev.err.log
+
+# --- Konfiguration mit potenziellen Secrets ---
+appsettings.Development.json
+
+# --- Betriebssystem / Editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.sw?
