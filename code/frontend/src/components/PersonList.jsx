@@ -12,8 +12,10 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   const [dragId, setDragId] = useState(null)
   const [armedId, setArmedId] = useState(null)
   const [flashId, setFlashId] = useState(null)
+  const tableRef = useRef(null)
   const rowRefs = useRef(new Map())
   const lastTops = useRef(new Map())
+  const anims = useRef(new Map())
 
   // Wenn die Parent-Daten neu sind (Laden, Anlegen, Löschen), Zeilen zurücksetzen
   const [prevPersons, setPrevPersons] = useState(persons)
@@ -22,19 +24,26 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
     setRows(persons)
   }
 
-  // FLIP: verschobene Zeilen gleiten in ihre neue Position (220 ms, nur Transform)
+  // FLIP: verschobene Zeilen gleiten in ihre neue Position (220 ms, nur Transform).
+  // Laufende Animationen werden zuerst abgebrochen, sonst misst getBoundingClientRect
+  // Positionen inkl. der noch laufenden Verformung und neue FLIP-Animationen summieren sich.
   useLayoutEffect(() => {
+    anims.current.forEach((a) => a.cancel())
+    anims.current.clear()
+
     const prev = lastTops.current
+    const base = tableRef.current ? tableRef.current.getBoundingClientRect().top : 0
     const next = new Map()
-    rowRefs.current.forEach((el, id) => next.set(id, el.getBoundingClientRect().top))
+    // Position relativ zur Tabelle (nicht zum Viewport), sonst verfälscht Scrollen jede Messung
+    rowRefs.current.forEach((el, id) => next.set(id, el.getBoundingClientRect().top - base))
     rowRefs.current.forEach((el, id) => {
       const from = prev.get(id)
       const to = next.get(id)
       if (from !== undefined && to !== from && el.animate) {
-        el.animate(
+        anims.current.set(id, el.animate(
           [{ transform: `translateY(${from - to}px)` }, { transform: 'translateY(0)' }],
           { duration: 220, easing: 'ease-out' }
-        )
+        ))
       }
     })
     lastTops.current = next
@@ -81,7 +90,7 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   }
 
   return (
-    <table className="dt-table">
+    <table className="dt-table" ref={tableRef}>
       <thead>
         <tr>
           <th aria-label="Reihenfolge" />
