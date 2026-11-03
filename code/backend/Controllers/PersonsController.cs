@@ -101,9 +101,10 @@ public class PersonsController(PersonDbContext db) : ControllerBase
             return BadRequest("Reihenfolge enthält unbekannte Personen.");
         }
 
-        for (var i = 0; i < persons.Count; i++)
+        var byId = persons.ToDictionary(p => p.Id);
+        for (var i = 0; i < ids.Count; i++)
         {
-            persons[i].Order = i + 1;
+            byId[ids[i]].Order = i + 1;
         }
 
         await db.SaveChangesAsync();
