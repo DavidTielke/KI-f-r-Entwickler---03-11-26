@@ -157,7 +157,7 @@ function App() {
               «{deleteTarget.name}» (#{deleteTarget.id}) wird dauerhaft gelöscht. Diese Aktion
               kann nicht rückgängig gemacht werden.
             </div>
-            <div className="dt-modal__foot">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
               <button
                 type="button"
                 className="dt-btn dt-btn--secondary dt-btn--modal"
