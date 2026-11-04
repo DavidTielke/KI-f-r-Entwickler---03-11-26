@@ -26,6 +26,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# --- Software Factory: Gesprächsverläufe, Auftragsprotokolle, Einstellungen ---
+code/factory/data/
+
 # --- Logs ---
 *.log
 logs/
