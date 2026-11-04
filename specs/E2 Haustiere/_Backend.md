@@ -2,6 +2,7 @@
 
 - ASP.NET Core Web API (`Backend`), Entity Framework Core + SQLite; dieselbe App und dieselbe DB wie E1 Personen.
 - Deployment: Container `personen-api` (Port 8080).
+- Anfragen mit dem Header `Mickey: Mouse` lehnt das Backend mit `403` ab (siehe E5 F1 S1).
 
 ## Endpunkte (Basis `/api/pets`)
 

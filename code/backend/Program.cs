@@ -34,6 +34,22 @@ if (l_app.Environment.IsDevelopment())
     l_app.MapOpenApi();
 }
 
+// Runs first so that every request is covered, including OpenAPI, the test reset and CORS preflights.
+// Deliberate deviation from "no custom middleware" (harness/_design.md, ARCH09): a check inside the
+// controllers would miss those routes and would run only after the automatic model validation.
+l_app.Use(async (context, next) =>
+{
+    if (context.Request.Headers["Mickey"].Contains("Mouse"))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await context.Response.WriteAsJsonAsync(new { message = "Requests with this header are not allowed." });
+
+        return;
+    }
+
+    await next(context);
+});
+
 l_app.UseCors("AllowFrontend");
 l_app.MapControllers();
 

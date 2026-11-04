@@ -3,6 +3,7 @@
 - ASP.NET Core Web API (`Backend`), Entity Framework Core + SQLite.
 - Deployment: Container `personen-api` (Port 8080), Frontend `personen-web` (nginx, Port 3000).
 - Keine Authentifizierung, keine Domain Events.
+- Anfragen mit dem Header `Mickey: Mouse` lehnt das Backend mit `403` ab (siehe E5 F1 S1).
 
 ## Endpunkte (Basis `/api/persons`)
 
