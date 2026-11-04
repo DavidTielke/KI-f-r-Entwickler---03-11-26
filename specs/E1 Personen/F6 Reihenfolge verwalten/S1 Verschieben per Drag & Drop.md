@@ -10,6 +10,7 @@ Als Administration möchte ich Zeilen per Ziehen in eine neue Reihenfolge bringe
 In der Spalte „Reihenfolge" trägt jede Zeile einen Ziehgrip. Über den Grip lässt sich die Zeile auf eine andere Position ziehen; während des Ziehens verschieben sich die übrigen Zeilen live, nach dem Loslassen wird die Reihenfolge gespeichert.
 
 ## Akzeptanzkriterien
+- Wenn eine Person verschoben wird, dann soll dem Cursor ein bunter Partikelregen folgen
 - Jede Zeile zeigt in der Spalte „Reihenfolge" einen Ziehgrip.
 - Die Zeile ist nur über den Ziehgrip ziehbar.
 - Die gezogene Zeile wird während des Ziehens visuell als gezogen markiert.

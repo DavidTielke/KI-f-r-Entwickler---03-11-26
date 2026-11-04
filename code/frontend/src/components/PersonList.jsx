@@ -7,6 +7,28 @@ import {
   IconChevronDown,
 } from './icons.jsx'
 
+const RAIN_COLORS = ['#f38a2c', '#7cb342', '#ff5252', '#40c4ff', '#ffca28', '#e040fb']
+
+function spawnRain(overlay, x, y) {
+  const count = 3 + Math.floor(Math.random() * 3)
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div')
+    const size = 5 + Math.random() * 4
+    el.style.cssText = `position:fixed;left:${x + (Math.random() * 24 - 12)}px;top:${y - 8}px;width:${size}px;height:${size}px;border-radius:50%;background:${RAIN_COLORS[Math.floor(Math.random() * RAIN_COLORS.length)]};pointer-events:none;z-index:60;`
+    overlay.appendChild(el)
+    const dx = Math.random() * 40 - 20
+    const dy = 60 + Math.random() * 80
+    el.animate(
+      [
+        { transform: 'translate(0, 0)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px)`, opacity: 0 },
+      ],
+      { duration: 600 + Math.random() * 400, easing: 'ease-in' },
+    ).onfinish = () => el.remove()
+  }
+  while (overlay.childElementCount > 80) overlay.firstElementChild.remove()
+}
+
 export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   const [rows, setRows] = useState(persons)
   const [dragId, setDragId] = useState(null)
@@ -17,6 +39,8 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   const lastTops = useRef(new Map())
   const anims = useRef(new Map())
   const dragIdRef = useRef(null)
+  const overlayRef = useRef(null)
+  const lastRainAt = useRef(0)
 
   // Wenn die Parent-Daten neu sind (Laden, Anlegen, Löschen), Zeilen zurücksetzen
   const [prevPersons, setPrevPersons] = useState(persons)
@@ -85,6 +109,11 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     if (dragId === null) return
+    const now = performance.now()
+    if (now - lastRainAt.current >= 40 && overlayRef.current) {
+      lastRainAt.current = now
+      spawnRain(overlayRef.current, e.clientX, e.clientY)
+    }
     const from = rows.findIndex((p) => p.id === dragId)
     if (from < 0 || from === index) return
     const next = [...rows]
@@ -102,11 +131,12 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
   }
 
   return (
+    <>
     <table className="dt-table" ref={tableRef}>
       <thead>
         <tr>
           <th aria-label="Reihenfolge" />
-          <th>ID</th>
+          <th>ID 💩</th>
           <th>Name</th>
           <th className="dt-table__num">Alter</th>
           <th className="dt-table__num" aria-label="Aktionen" />
@@ -190,5 +220,7 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
         ))}
       </tbody>
     </table>
+      <div ref={overlayRef} aria-hidden="true" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 60 }} />
+    </>
   )
 }

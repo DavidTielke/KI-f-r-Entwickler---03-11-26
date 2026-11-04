@@ -11,6 +11,7 @@ Der Hauptbereich der Personen-Seite zeigt die Personen als Tabelle in einer Tabe
 
 ## Akzeptanzkriterien
 ### Inhalt
+- Am Ende der Überschrift der ID Spalte ist ein Kackhaufen-Emoji
 - Die Tabelle zeigt eine Zeile pro persistierter Person.
 - Die Tabelle enthält die Spalten „Reihenfolge", „ID", „Name", „Alter" und die Spalte für die Zeilenaktionen.
 - Die Spalte „ID" zeigt die `Id` im Format `#{id}`.
