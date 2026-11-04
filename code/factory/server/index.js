@@ -130,7 +130,7 @@ app.get('/api/appendix/:epic/:name', (req, res) => {
 app.post('/api/requirements', async (req, res) => {
   runs.assertSpecsUnlocked()
   const created = specs.createStory(req.body, req.body.placement)
-  await git.commitPaths(['specs'], `anforderung: ${created.id} ${req.body.title.trim()} angelegt`)
+  await git.commitPaths([created.path], `anforderung: ${created.id} ${req.body.title.trim()} angelegt`)
   logEvent('requirement', `Anforderung ${created.id} »${req.body.title.trim()}« angelegt`, { story: created.id })
   notify('requirements')
   res.status(201).json(created)
@@ -142,7 +142,7 @@ app.put('/api/requirements/:id', async (req, res) => {
   runs.assertSpecsUnlocked()
   const updated = specs.updateStory(req.params.id, req.body)
   if (updated.changed) {
-    await git.commitPaths(['specs'], `anforderung: ${req.params.id} geändert`)
+    await git.commitPaths([updated.path, updated.oldPath].filter(Boolean), `anforderung: ${req.params.id} geändert`)
     logEvent('requirement', `Anforderung ${req.params.id} »${req.body.title.trim()}« geändert`, { story: req.params.id })
     notify('requirements')
   }
@@ -155,7 +155,7 @@ app.delete('/api/requirements/:id', async (req, res) => {
     throw new HttpError(409, 'Bereits umgesetzte Anforderungen bleiben als Nachweis erhalten und lassen sich nicht löschen.')
   }
   specs.deleteStory(req.params.id)
-  await git.commitPaths(['specs'], `anforderung: ${req.params.id} ${story.title} entfernt`)
+  await git.commitPaths([story.path], `anforderung: ${req.params.id} ${story.title} entfernt`)
   logEvent('requirement', `Anforderung ${req.params.id} »${story.title}« entfernt`, null)
   notify('requirements')
   res.json({ ok: true })

@@ -14,6 +14,7 @@ import {
   ideaPrompt,
   studioPrompt,
 } from './prompts.js'
+import { isIdeaInTransfer } from './runs.js'
 import { createStory, getStory, inventoryText, updateStory } from './specs.js'
 import { dataPath, getSettings, listJson, logEvent, readJson, removeFile, writeJson } from './storage.js'
 
@@ -330,6 +331,7 @@ export async function approveIdea(id) {
 export function reopenIdea(id) {
   const { doc } = readIdeaDoc(id)
   if (doc.state !== 'Ready') throw conflict('Nur freigegebene Ideen lassen sich erneut öffnen.')
+  if (isIdeaInTransfer(id)) throw conflict('Diese Idee wird gerade in Anforderungen überführt.')
   writeIdeaDoc(id, { ...doc, state: 'Draft' })
   logEvent('idea', `Idee ${id} »${doc.title}« erneut geöffnet`, { idea: id })
   notify('ideas', id)
@@ -340,6 +342,7 @@ export async function deleteIdea(id) {
   if (doc.state === 'Übernommen') {
     throw conflict('Eine überführte Idee bleibt als Nachweis erhalten und lässt sich nicht löschen.')
   }
+  if (isIdeaInTransfer(id)) throw conflict('Diese Idee wird gerade in Anforderungen überführt.')
   const session = loadSession(id)
   if (session) assertIdle(session)
   removeIdeaDoc(id)
@@ -384,10 +387,20 @@ export function listStudio() {
     .map(studioView)
 }
 
-export function getStudio(id) {
+function loadStudio(id) {
   const session = loadSession(id)
   if (!session || session.kind !== 'studio') throw notFound('Dieser Entwurf existiert nicht mehr.')
-  return studioView(session)
+  return session
+}
+
+function loadOpenStudio(id) {
+  const session = loadStudio(id)
+  if (session.status !== 'open') throw conflict('Dieser Entwurf wurde bereits gespeichert.')
+  return session
+}
+
+export function getStudio(id) {
+  return studioView(loadStudio(id))
 }
 
 const studioTurn = (id) =>
@@ -437,30 +450,27 @@ export function createStudio(text, storyId = null) {
 }
 
 export function sendStudioMessage(id, text, answers) {
-  const session = getStudio(id)
+  const session = loadOpenStudio(id)
   assertIdle(session)
-  const raw = loadSession(id)
-  addUserMessage(raw, text, answers)
-  saveSession(raw)
+  addUserMessage(session, text, answers)
+  saveSession(session)
   studioTurn(id)
 }
 
 export function retryStudio(id) {
-  assertIdle(getStudio(id))
+  assertIdle(loadOpenStudio(id))
   studioTurn(id)
 }
 
 export function updateStudioDraft(id, draft) {
-  const session = loadSession(id)
-  if (!session) throw notFound('Dieser Entwurf existiert nicht mehr.')
+  const session = loadOpenStudio(id)
   assertIdle(session)
   session.draft = { ...session.draft, ...draft }
   saveSession(session)
 }
 
 export async function saveStudio(id) {
-  const session = loadSession(id)
-  if (!session) throw notFound('Dieser Entwurf existiert nicht mehr.')
+  const session = loadOpenStudio(id)
   assertIdle(session)
   let result
   let subject
@@ -473,7 +483,7 @@ export async function saveStudio(id) {
     subject = `anforderung: ${result.id} ${session.draft.title} angelegt`
     logEvent('requirement', `Anforderung ${result.id} »${session.draft.title}« mit dem Assistenten angelegt`, { story: result.id })
   }
-  await git.commitPaths(['specs'], subject)
+  await git.commitPaths([result.path, result.oldPath].filter(Boolean), subject)
   session.status = 'saved'
   session.savedStory = result.id
   saveSession(session)
@@ -482,9 +492,7 @@ export async function saveStudio(id) {
 }
 
 export function deleteStudio(id) {
-  const session = loadSession(id)
-  if (!session) return
-  assertIdle(session)
+  assertIdle(loadStudio(id))
   removeFile(sessionFile(id))
   notify('studio', id)
 }

@@ -101,7 +101,8 @@ export function recoverRuns() {
       run.error = 'Der Auftrag wurde durch einen Neustart des Dienstes unterbrochen.'
       run.endedAt = new Date().toISOString()
       run.phases = run.phases.map((p) => (p.status === 'active' ? { ...p, status: 'failed' } : p))
-      run.canDiscard = run.type !== 'revert'
+      // Hat der Auftrag noch nicht gearbeitet, gehören offene Änderungen dem Anwender.
+      run.canDiscard = run.type !== 'revert' && Boolean(run.workStarted)
       writeJson(runFile(run.id), run)
     }
   }
@@ -128,6 +129,12 @@ export function assertSpecsUnlocked() {
 
 export function isBusy() {
   return Boolean(active)
+}
+
+export function isIdeaInTransfer(ideaId) {
+  return listJson('runs').some(
+    (run) => run.type === 'transfer' && run.ideaId === ideaId && ['queued', 'running'].includes(run.status),
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -257,6 +264,18 @@ function createContext(run) {
   return context
 }
 
+// Eine Überführung schreibt nur Anforderungen. Offene Änderungen an der Anwendung
+// stammen dann nicht von ihr und dürfen nicht mit verworfen werden.
+function discardScope(run) {
+  return run.type === 'transfer' ? ['specs'] : DELIVERY_PATHSPECS
+}
+
+function recordCommit(run, hash) {
+  if (!hash) return
+  run.commits = [...(run.commits ?? []), hash]
+  run.commit = hash
+}
+
 async function finishFailed(context, err) {
   const { run } = context
   const canceled = context.canceled
@@ -265,8 +284,10 @@ async function finishFailed(context, err) {
   run.errorDetail = err.detail ?? err.log?.slice(-4000) ?? null
   run.endedAt = new Date().toISOString()
   run.phases = run.phases.map((p) => (p.status === 'active' ? { ...p, status: 'failed', endedAt: run.endedAt } : p))
-  if (run.type !== 'revert') {
-    const pending = await git.status(DELIVERY_PATHSPECS).catch(() => [])
+  // Verwerfbar ist nur, was der Auftrag selbst verändert haben kann. Scheitert er in
+  // der Vorbereitung, sind offene Änderungen die Arbeit des Anwenders und tabu.
+  if (run.type !== 'revert' && run.workStarted) {
+    const pending = await git.status(discardScope(run)).catch(() => [])
     run.canDiscard = pending.length > 0
   }
   logEvent('run', `${runLabel(run)} ${canceled ? 'abgebrochen' : 'fehlgeschlagen'}`, { run: run.id })
@@ -302,6 +323,12 @@ async function executeTransfer(context) {
   }
   run.baseCommit = await git.head()
   const idea = readIdeaDoc(run.ideaId)
+  // Offene Änderungen des Anwenders außerhalb der Anforderungen sind kein Vergehen
+  // der KI: Geprüft wird nur, was seit dem Start neu hinzugekommen ist.
+  const outsideSpecs = async () =>
+    (await git.status(['.', ':(exclude)specs', ':(exclude)ideas', ':(exclude)code/factory'])).map((e) => e.path)
+  const outsideBefore = new Set(await outsideSpecs())
+  run.workStarted = true
 
   context.phase('ausformulierung')
   const result = await context.agent({
@@ -324,7 +351,7 @@ async function executeTransfer(context) {
       log: problems.join('\n'),
     })
   }
-  const outside = (await git.status(['.', ':(exclude)specs', ':(exclude)ideas', ':(exclude)code/factory'])).map((e) => e.path)
+  const outside = (await outsideSpecs()).filter((file) => !outsideBefore.has(file))
   if (outside.length) {
     throw Object.assign(new Error('Die KI hat Dateien außerhalb der Anforderungen verändert.'), { log: outside.join('\n') })
   }
@@ -338,10 +365,13 @@ async function executeTransfer(context) {
     state: 'Übernommen',
     transfer: [...current.doc.transfer, `${today}: Überführt in ${links}.`],
   })
-  run.commit = await git.commitPaths(['specs', ideaPath], `idee: ${run.ideaId} ${current.doc.title} in anforderungen überführt`, {
-    body: storyPaths.map((file) => `- ${file}`).join('\n'),
-    model: getSettings().buildModel,
-  })
+  recordCommit(
+    run,
+    await git.commitPaths(['specs', ideaPath], `idee: ${run.ideaId} ${current.doc.title} in anforderungen überführt`, {
+      body: storyPaths.map((file) => `- ${file}`).join('\n'),
+      model: getSettings().buildModel,
+    }),
+  )
   run.storyPaths = storyPaths
   run.summary = result.structured?.summary ?? ''
   run.stories = allStories()
@@ -473,8 +503,18 @@ async function bringUpAndVerify(context) {
 }
 
 async function collectChanges(run) {
-  if (!run.commit) return
-  const files = await git.changeStats(run.commit)
+  if (!run.commits?.length) return
+  // Eine Umsetzung kann aus mehreren Versionen bestehen (Nachbesserungen).
+  const byPath = new Map()
+  for (const hash of run.commits) {
+    for (const file of await git.changeStats(hash)) {
+      const known = byPath.get(file.path) ?? { path: file.path, added: 0, removed: 0 }
+      known.added += file.added
+      known.removed += file.removed
+      byPath.set(file.path, known)
+    }
+  }
+  const files = [...byPath.values()]
   const area = (file) => {
     if (file.startsWith('code/frontend')) return 'Oberfläche'
     if (file.startsWith('code/backend/Migrations')) return 'Datenbank'
@@ -508,6 +548,7 @@ async function executeDelivery(context) {
   })
   run.baseCommit = await git.head()
   const scopeBefore = new Set(await filesOutsideScope())
+  run.workStarted = true
 
   context.phase('umsetzung')
   const stories = run.stories.map((story) => ({ id: story.id, path: getStory(story.id).path }))
@@ -564,10 +605,13 @@ async function executeDelivery(context) {
     ? `umsetzung: ${doneIds.join(', ')}`
     : `umsetzung: ${run.id} teilweise, keine anforderung abgeschlossen`
   const changedPaths = (await git.status(DELIVERY_PATHSPECS)).map((entry) => entry.path)
-  run.commit = await git.commitPaths(changedPaths, subject, {
-    body: run.summary,
-    model: getSettings().buildModel,
-  })
+  recordCommit(
+    run,
+    await git.commitPaths(changedPaths, subject, {
+      body: run.summary,
+      model: getSettings().buildModel,
+    }),
+  )
   await collectChanges(run)
 
   // Bleibt die Anwendung nach der Auslieferung gestört, bessert die KI nach.
@@ -592,7 +636,7 @@ async function executeDelivery(context) {
       await composeBuildWithRepair(context)
       const fixed = (await git.status(DELIVERY_PATHSPECS)).map((entry) => entry.path)
       if (fixed.length) {
-        run.commit = await git.commitPaths(fixed, `umsetzung: ${run.id} nachbesserung`, { model: getSettings().buildModel })
+        recordCommit(run, await git.commitPaths(fixed, `umsetzung: ${run.id} nachbesserung`, { model: getSettings().buildModel }))
         await collectChanges(run)
       }
     }
@@ -621,7 +665,13 @@ export function startRevert(id) {
   if (target.changes?.files.some((file) => file.path.startsWith('code/backend/Migrations/'))) {
     throw conflict('Diese Auslieferung enthält eine Datenbankänderung und lässt sich deshalb nicht automatisch zurücknehmen.')
   }
-  const run = enqueue(newRun('revert', `Rücknahme von ${id}`, { targetRun: id, targetCommit: target.commit, stories: target.stories }))
+  const pendingRevert = listJson('runs').some(
+    (candidate) => candidate.type === 'revert' && candidate.targetRun === id && ['queued', 'running'].includes(candidate.status),
+  )
+  if (pendingRevert) throw conflict('Diese Auslieferung wird bereits zurückgenommen.')
+  // Nachbesserungen gehören dazu. Die jüngste Version wird zuerst zurückgenommen.
+  const targetCommits = [...(target.commits ?? [target.commit])].reverse()
+  const run = enqueue(newRun('revert', `Rücknahme von ${id}`, { targetRun: id, targetCommits, stories: target.stories }))
   logEvent('run', `Rücknahme ${run.id} der Auslieferung ${id} beauftragt`, { run: run.id })
   return { id: run.id }
 }
@@ -634,9 +684,9 @@ async function executeRevert(context) {
   run.baseCommit = await git.head()
 
   context.phase('ruecknahme')
-  context.track({ kind: 'step', text: 'Stellt den vorherigen Stand wieder her', detail: `git revert ${run.targetCommit}` })
+  context.track({ kind: 'step', text: 'Stellt den vorherigen Stand wieder her', detail: `git revert ${run.targetCommits.join(' ')}` })
   try {
-    run.commit = await git.revert(run.targetCommit)
+    recordCommit(run, await git.revert(run.targetCommits))
   } catch (err) {
     throw Object.assign(
       new Error('Die Auslieferung lässt sich nicht automatisch zurücknehmen, weil spätere Änderungen darauf aufbauen.'),
@@ -681,7 +731,7 @@ export async function discardRun(id) {
   if (!run) throw notFound('Dieser Auftrag existiert nicht.')
   if (!run.canDiscard) throw conflict('Zu diesem Auftrag gibt es keine verwerfbaren Änderungen.')
   if (active) throw conflict('Bitte warten Sie, bis der laufende Auftrag abgeschlossen ist.')
-  await git.discard(DELIVERY_PATHSPECS)
+  await git.discard(discardScope(run))
   run.canDiscard = false
   run.discarded = true
   saveRun(run)
@@ -695,7 +745,11 @@ export function retryRun(id) {
   if (run.canDiscard) {
     throw conflict('Bitte verwerfen Sie zuerst die Änderungen des abgebrochenen Laufs.')
   }
-  if (run.type === 'delivery') return startDelivery(run.stories.filter((s) => getStory(s.id).state !== 'Implemented').map((s) => s.id))
+  if (run.type === 'delivery') {
+    const open = run.stories.filter((s) => getStory(s.id).state !== 'Implemented').map((s) => s.id)
+    if (open.length === 0) throw conflict('Alle Anforderungen dieses Auftrags sind bereits umgesetzt.')
+    return startDelivery(open)
+  }
   if (run.type === 'transfer') return startTransfer(run.ideaId)
   throw conflict('Dieser Auftrag lässt sich nicht wiederholen.')
 }

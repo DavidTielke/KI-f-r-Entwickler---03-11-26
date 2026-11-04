@@ -33,8 +33,8 @@ export async function head() {
   return (await run(['rev-parse', '--short', 'HEAD'])).trim()
 }
 
-export async function status(pathspecs) {
-  const out = await run(['status', '--porcelain=v1', '-z', '-uall', '--no-renames', '--', ...pathspecs])
+export async function status(pathspecs, { literal = false } = {}) {
+  const out = await run(['status', '--porcelain=v1', '-z', '-uall', '--no-renames', '--', ...pathspecs], { literal })
   return out
     .split('\0')
     .filter(Boolean)
@@ -43,7 +43,7 @@ export async function status(pathspecs) {
 
 export function commitPaths(paths, subject, { body = '', model = null } = {}) {
   return exclusive(async () => {
-    const changed = (await status(paths)).map((entry) => entry.path)
+    const changed = (await status(paths, { literal: true })).map((entry) => entry.path)
     if (changed.length === 0) return null
     const trailer = `Co-Authored-By: Claude ${model ? modelLabel(model) : 'Opus 5.5'} <noreply@anthropic.com>`
     const message = [subject, body, trailer].filter(Boolean).join('\n\n')
@@ -60,10 +60,10 @@ export function discard(pathspecs) {
   })
 }
 
-export function revert(hash) {
+export function revert(hashes) {
   return exclusive(async () => {
     try {
-      await run(['revert', '--no-edit', hash])
+      await run(['revert', '--no-edit', ...hashes])
     } catch (err) {
       await run(['revert', '--abort']).catch(() => {})
       throw err
@@ -85,7 +85,8 @@ export async function fileHistory(file, limit = 15) {
 
 // Wurde die Datei jemals mit dem Status „Implemented“ eingecheckt?
 export async function wasEverImplemented(file) {
-  const out = await run(['log', '--format=%h', '-S', '**State:** Implemented', '--', file])
+  // --follow: Ein Titelwechsel benennt die Datei um, der frühere Stand zählt trotzdem.
+  const out = await run(['log', '--follow', '--format=%h', '-S', '**State:** Implemented', '--', file])
   return out.trim().length > 0
 }
 

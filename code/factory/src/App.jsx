@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Icon } from './components/icons.jsx'
 import { useLive } from './lib/api.js'
 import { useRoute } from './lib/router.js'
@@ -38,7 +38,12 @@ export default function App() {
   const { segments, query } = useRoute()
   const [selected, setSelected] = useState([])
   const overview = useLive('/api/overview', ['ideas', 'requirements', 'runs', 'studio'])
-  const system = useLive('/api/system', ['runs'])
+  const system = useLive('/api/system')
+  const reloadSystem = system.reload
+  useEffect(() => {
+    const id = setInterval(reloadSystem, 30000)
+    return () => clearInterval(id)
+  }, [reloadSystem])
   const section = segments[0] ?? 'cockpit'
   const nav = overview.data?.nav
 

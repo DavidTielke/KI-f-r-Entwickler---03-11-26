@@ -129,12 +129,21 @@ function probe(file, args) {
   })
 }
 
+// Die Oberfläche fragt den Zustand regelmäßig ab. Die Werkzeuge ändern sich kaum,
+// während ein Start von „claude“ teuer ist.
+let toolProbe = null
+function probeTools() {
+  if (!toolProbe || Date.now() - toolProbe.at > 5 * 60000) {
+    toolProbe = { at: Date.now(), result: Promise.all([probe('claude', ['--version']), probe('git', ['--version'])]) }
+  }
+  return toolProbe.result
+}
+
 export async function systemStatus() {
   const settings = getSettings()
-  const [claude, docker, gitVersion, app] = await Promise.all([
-    probe('claude', ['--version']),
+  const [[claude, gitVersion], docker, app] = await Promise.all([
+    probeTools(),
     probe('docker', ['info', '--format', '{{.ServerVersion}}']),
-    probe('git', ['--version']),
     fetch(settings.appUrl, { signal: AbortSignal.timeout(3000) })
       .then((response) => response.ok)
       .catch(() => false),
