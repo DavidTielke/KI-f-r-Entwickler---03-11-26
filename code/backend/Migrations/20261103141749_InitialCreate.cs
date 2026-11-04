@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace PersonenApi.Migrations
+namespace Backend.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

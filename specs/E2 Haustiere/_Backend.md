@@ -1,6 +1,6 @@
 # Backend — Haustiere
 
-- ASP.NET Core Web API (`PersonenApi`), Entity Framework Core + SQLite; dieselbe App und dieselbe DB wie E1 Personen.
+- ASP.NET Core Web API (`Backend`), Entity Framework Core + SQLite; dieselbe App und dieselbe DB wie E1 Personen.
 - Deployment: Container `personen-api` (Port 8080).
 
 ## Endpunkte (Basis `/api/pets`)

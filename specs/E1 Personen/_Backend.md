@@ -1,6 +1,6 @@
 # Backend — Personen
 
-- ASP.NET Core Web API (`PersonenApi`), Entity Framework Core + SQLite.
+- ASP.NET Core Web API (`Backend`), Entity Framework Core + SQLite.
 - Deployment: Container `personen-api` (Port 8080), Frontend `personen-web` (nginx, Port 3000).
 - Keine Authentifizierung, keine Domain Events.
 

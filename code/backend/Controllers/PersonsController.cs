@@ -1,121 +1,123 @@
+using Backend.Data;
+using Backend.Dtos;
+using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PersonenApi.Data;
-using PersonenApi.Dtos;
-using PersonenApi.Models;
 
-namespace PersonenApi.Controllers;
+namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/persons")]
-public class PersonsController(PersonDbContext db) : ControllerBase
+public class PersonsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PersonDto>>> GetPersons()
+    public async Task<ActionResult<IEnumerable<PersonResponse>>> GetPersons()
     {
-        var persons = await db.Persons
+        var l_persons = await db.Persons
             .OrderBy(p => p.Order)
             .ThenBy(p => p.Name)
-            .Select(p => new PersonDto(p.Id, p.Name, p.Age))
+            .Select(p => new PersonResponse(p.Id, p.Name, p.Age))
             .ToListAsync();
 
-        return Ok(persons);
+        return Ok(l_persons);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<PersonDto>> GetPerson(int id)
+    public async Task<ActionResult<PersonResponse>> GetPerson(int id)
     {
-        var person = await db.Persons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
-        if (person is null)
+        var l_person = await db.Persons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+        if (l_person is null)
         {
             return NotFound();
         }
 
-        return Ok(new PersonDto(person.Id, person.Name, person.Age));
+        return Ok(new PersonResponse(l_person.Id, l_person.Name, l_person.Age));
     }
 
     [HttpPost]
-    public async Task<ActionResult<PersonDto>> CreatePerson(PersonRequest request)
+    public async Task<ActionResult<PersonResponse>> CreatePerson(PersonRequest request)
     {
-        if (request.PetId is int petId)
+        if (request.PetId is { } l_petId)
         {
-            var requestedPet = await db.Pets.AsNoTracking().FirstOrDefaultAsync(p => p.Id == petId);
-            if (requestedPet is null)
+            var l_requestedPet = await db.Pets.AsNoTracking().FirstOrDefaultAsync(p => p.Id == l_petId);
+            if (l_requestedPet is null)
             {
                 return BadRequest("Das Haustier existiert nicht.");
             }
 
-            if (requestedPet.PersonId is not null)
+            if (l_requestedPet.PersonId is not null)
             {
                 return BadRequest("Das Haustier ist bereits einer anderen Person zugeordnet.");
             }
         }
 
-        var nextOrder = await db.Persons.CountAsync() + 1;
+        var l_nextOrder = await db.Persons.CountAsync() + 1;
 
-        var person = new Person
+        var l_person = new Person
         {
             Name = request.Name.Trim(),
             Age = request.Age,
-            Order = nextOrder
+            Order = l_nextOrder
         };
 
-        db.Persons.Add(person);
+        db.Persons.Add(l_person);
         await db.SaveChangesAsync();
 
-        if (request.PetId is int linkedPetId)
+        if (request.PetId is { } l_linkedPetId)
         {
-            var pet = await db.Pets.SingleAsync(p => p.Id == linkedPetId);
-            pet.PersonId = person.Id;
+            var l_pet = await db.Pets.SingleAsync(p => p.Id == l_linkedPetId);
+            l_pet.PersonId = l_person.Id;
             await db.SaveChangesAsync();
         }
 
-        return CreatedAtAction(nameof(GetPerson), new { id = person.Id }, new PersonDto(person.Id, person.Name, person.Age));
+        var l_response = new PersonResponse(l_person.Id, l_person.Name, l_person.Age);
+
+        return CreatedAtAction(nameof(GetPerson), new { id = l_person.Id }, l_response);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdatePerson(int id, PersonRequest request)
     {
-        var person = await db.Persons.FirstOrDefaultAsync(p => p.Id == id);
-        if (person is null)
+        var l_person = await db.Persons.FirstOrDefaultAsync(p => p.Id == id);
+        if (l_person is null)
         {
             return NotFound();
         }
 
-        if (request.PetId is int targetPetId)
+        if (request.PetId is { } l_targetPetId)
         {
-            var targetPet = await db.Pets.AsNoTracking().FirstOrDefaultAsync(p => p.Id == targetPetId);
-            if (targetPet is null)
+            var l_targetPet = await db.Pets.AsNoTracking().FirstOrDefaultAsync(p => p.Id == l_targetPetId);
+            if (l_targetPet is null)
             {
                 return BadRequest("Das Haustier existiert nicht.");
             }
 
-            if (targetPet.PersonId is not null && targetPet.PersonId != person.Id)
+            if (l_targetPet.PersonId is not null && l_targetPet.PersonId != l_person.Id)
             {
                 return BadRequest("Das Haustier ist bereits einer anderen Person zugeordnet.");
             }
         }
 
-        person.Name = request.Name.Trim();
-        person.Age = request.Age;
+        l_person.Name = request.Name.Trim();
+        l_person.Age = request.Age;
 
-        if (request.PetId is int newPetId)
+        if (request.PetId is { } l_newPetId)
         {
-            var newPet = await db.Pets.SingleAsync(p => p.Id == newPetId);
-            var previousPet = await db.Pets.FirstOrDefaultAsync(p => p.PersonId == person.Id && p.Id != newPetId);
-            if (previousPet is not null)
+            var l_newPet = await db.Pets.SingleAsync(p => p.Id == l_newPetId);
+            var l_previousPet = await db.Pets.FirstOrDefaultAsync(p => p.PersonId == l_person.Id && p.Id != l_newPetId);
+            if (l_previousPet is not null)
             {
-                previousPet.PersonId = null;
+                l_previousPet.PersonId = null;
             }
 
-            newPet.PersonId = person.Id;
+            l_newPet.PersonId = l_person.Id;
         }
         else
         {
-            var currentPet = await db.Pets.FirstOrDefaultAsync(p => p.PersonId == person.Id);
-            if (currentPet is not null)
+            var l_currentPet = await db.Pets.FirstOrDefaultAsync(p => p.PersonId == l_person.Id);
+            if (l_currentPet is not null)
             {
-                currentPet.PersonId = null;
+                l_currentPet.PersonId = null;
             }
         }
 
@@ -127,40 +129,40 @@ public class PersonsController(PersonDbContext db) : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeletePerson(int id)
     {
-        var person = await db.Persons.FirstOrDefaultAsync(p => p.Id == id);
-        if (person is null)
+        var l_person = await db.Persons.FirstOrDefaultAsync(p => p.Id == id);
+        if (l_person is null)
         {
             return NotFound();
         }
 
-        db.Persons.Remove(person);
+        db.Persons.Remove(l_person);
         await db.SaveChangesAsync();
 
         return NoContent();
     }
 
     [HttpPatch("reorder")]
-    public async Task<IActionResult> ReorderPersons(PersonReorderRequest request)
+    public async Task<IActionResult> UpdatePersonsPosition(PersonPositionRequest request)
     {
-        var ids = request.Ids.Distinct().ToList();
-        if (ids.Count == 0 || ids.Count != request.Ids.Count)
+        var l_ids = request.Ids.Distinct().ToList();
+        if (l_ids.Count == 0 || l_ids.Count != request.Ids.Count)
         {
             return BadRequest("Reihenfolge enthält doppelte oder fehlende Einträge.");
         }
 
-        var persons = await db.Persons
-            .Where(p => ids.Contains(p.Id))
+        var l_persons = await db.Persons
+            .Where(p => l_ids.Contains(p.Id))
             .ToListAsync();
 
-        if (persons.Count != ids.Count)
+        if (l_persons.Count != l_ids.Count)
         {
             return BadRequest("Reihenfolge enthält unbekannte Personen.");
         }
 
-        var byId = persons.ToDictionary(p => p.Id);
-        for (var i = 0; i < ids.Count; i++)
+        var l_byId = l_persons.ToDictionary(p => p.Id);
+        for (var l_i = 0; l_i < l_ids.Count; l_i++)
         {
-            byId[ids[i]].Order = i + 1;
+            l_byId[l_ids[l_i]].Order = l_i + 1;
         }
 
         await db.SaveChangesAsync();

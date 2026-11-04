@@ -1,8 +1,8 @@
+using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PersonenApi.Models;
 
-namespace PersonenApi.Configurations;
+namespace Backend.Data.Configurations;
 
 public class PersonConfiguration : IEntityTypeConfiguration<Person>
 {

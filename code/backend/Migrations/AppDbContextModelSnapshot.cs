@@ -2,21 +2,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using PersonenApi.Data;
+using Backend.Data;
 
 #nullable disable
 
-namespace PersonenApi.Migrations
+namespace Backend.Migrations
 {
-    [DbContext(typeof(PersonDbContext))]
-    partial class PersonDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(AppDbContext))]
+    partial class AppDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
-            modelBuilder.Entity("PersonenApi.Models.Person", b =>
+            modelBuilder.Entity("Backend.Models.Person", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -38,7 +38,7 @@ namespace PersonenApi.Migrations
                     b.ToTable("Persons", (string)null);
                 });
 
-            modelBuilder.Entity("PersonenApi.Models.Pet", b =>
+            modelBuilder.Entity("Backend.Models.Pet", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -64,17 +64,17 @@ namespace PersonenApi.Migrations
                     b.ToTable("Pets", (string)null);
                 });
 
-            modelBuilder.Entity("PersonenApi.Models.Pet", b =>
+            modelBuilder.Entity("Backend.Models.Pet", b =>
                 {
-                    b.HasOne("PersonenApi.Models.Person", "Person")
+                    b.HasOne("Backend.Models.Person", "Person")
                         .WithOne("Pet")
-                        .HasForeignKey("PersonenApi.Models.Pet", "PersonId")
+                        .HasForeignKey("Backend.Models.Pet", "PersonId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Person");
                 });
 
-            modelBuilder.Entity("PersonenApi.Models.Person", b =>
+            modelBuilder.Entity("Backend.Models.Person", b =>
                 {
                     b.Navigation("Pet");
                 });

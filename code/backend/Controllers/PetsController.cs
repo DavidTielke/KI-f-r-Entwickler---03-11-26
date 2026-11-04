@@ -1,103 +1,91 @@
+using Backend.Data;
+using Backend.Dtos;
+using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PersonenApi.Data;
-using PersonenApi.Dtos;
-using PersonenApi.Models;
 
-namespace PersonenApi.Controllers;
+namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/pets")]
-public class PetsController(PersonDbContext db) : ControllerBase
+public class PetsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PetDto>>> GetPets()
+    public async Task<ActionResult<IEnumerable<PetResponse>>> GetPets()
     {
-        var pets = await db.Pets
-            .OrderBy(p => p.Name)
-            .ThenBy(p => p.Id)
-            .Include(p => p.Person)
-            .ToListAsync();
+        var l_pets = await ToResponses(db.Pets.OrderBy(p => p.Name).ThenBy(p => p.Id)).ToListAsync();
 
-        var result = pets
-            .Select(p => new PetDto(p.Id, p.Name, p.Species, p.PersonId, p.Person?.Name))
-            .ToList();
-
-        return Ok(result);
+        return Ok(l_pets);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<PetDto>> GetPet(int id)
+    public async Task<ActionResult<PetResponse>> GetPet(int id)
     {
-        var pet = await db.Pets.AsNoTracking().Include(p => p.Person).FirstOrDefaultAsync(p => p.Id == id);
-        if (pet is null)
+        var l_pet = await ToResponses(db.Pets.Where(p => p.Id == id)).FirstOrDefaultAsync();
+        if (l_pet is null)
         {
             return NotFound();
         }
 
-        return Ok(new PetDto(pet.Id, pet.Name, pet.Species, pet.PersonId, pet.Person?.Name));
+        return Ok(l_pet);
     }
 
     [HttpPost]
-    public async Task<ActionResult<PetDto>> CreatePet(PetRequest request)
+    public async Task<ActionResult<PetResponse>> CreatePet(PetRequest request)
     {
-        if (request.PersonId is int pid)
+        if (request.PersonId is { } l_pid)
         {
-            if (await db.Persons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pid) is null)
+            if (await db.Persons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == l_pid) is null)
             {
                 return BadRequest("Die Person existiert nicht.");
             }
 
-            if (await db.Pets.AsNoTracking().AnyAsync(p => p.PersonId == pid))
+            if (await db.Pets.AsNoTracking().AnyAsync(p => p.PersonId == l_pid))
             {
                 return BadRequest("Die Person hat bereits ein Haustier.");
             }
         }
 
-        var pet = new Pet
+        var l_pet = new Pet
         {
             Name = request.Name.Trim(),
-            Species = request.Species!.Value,
+            Species = request.Species,
             PersonId = request.PersonId
         };
 
-        db.Pets.Add(pet);
+        db.Pets.Add(l_pet);
         await db.SaveChangesAsync();
 
-        string? personName = null;
-        if (request.PersonId is int linkedPid)
-        {
-            personName = await db.Persons.AsNoTracking().Where(p => p.Id == linkedPid).Select(p => p.Name).FirstAsync();
-        }
+        var l_response = await ToResponses(db.Pets.Where(p => p.Id == l_pet.Id)).FirstAsync();
 
-        return CreatedAtAction(nameof(GetPet), new { id = pet.Id }, new PetDto(pet.Id, pet.Name, pet.Species, pet.PersonId, personName));
+        return CreatedAtAction(nameof(GetPet), new { id = l_pet.Id }, l_response);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdatePet(int id, PetRequest request)
     {
-        var pet = await db.Pets.FirstOrDefaultAsync(p => p.Id == id);
-        if (pet is null)
+        var l_pet = await db.Pets.FirstOrDefaultAsync(p => p.Id == id);
+        if (l_pet is null)
         {
             return NotFound();
         }
 
-        if (request.PersonId is int targetPid)
+        if (request.PersonId is { } l_targetPid)
         {
-            if (await db.Persons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == targetPid) is null)
+            if (await db.Persons.AsNoTracking().FirstOrDefaultAsync(p => p.Id == l_targetPid) is null)
             {
                 return BadRequest("Die Person existiert nicht.");
             }
 
-            if (await db.Pets.AsNoTracking().AnyAsync(p => p.PersonId == targetPid && p.Id != id))
+            if (await db.Pets.AsNoTracking().AnyAsync(p => p.PersonId == l_targetPid && p.Id != id))
             {
                 return BadRequest("Die Person hat bereits ein Haustier.");
             }
         }
 
-        pet.Name = request.Name.Trim();
-        pet.Species = request.Species!.Value;
-        pet.PersonId = request.PersonId;
+        l_pet.Name = request.Name.Trim();
+        l_pet.Species = request.Species;
+        l_pet.PersonId = request.PersonId;
 
         await db.SaveChangesAsync();
 
@@ -107,15 +95,25 @@ public class PetsController(PersonDbContext db) : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeletePet(int id)
     {
-        var pet = await db.Pets.FirstOrDefaultAsync(p => p.Id == id);
-        if (pet is null)
+        var l_pet = await db.Pets.FirstOrDefaultAsync(p => p.Id == id);
+        if (l_pet is null)
         {
             return NotFound();
         }
 
-        db.Pets.Remove(pet);
+        db.Pets.Remove(l_pet);
         await db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private IQueryable<PetResponse> ToResponses(IQueryable<Pet> pets)
+    {
+        return pets.Select(p => new PetResponse(
+            p.Id,
+            p.Name,
+            p.Species,
+            p.PersonId,
+            db.Persons.Where(person => person.Id == p.PersonId).Select(person => person.Name).FirstOrDefault()));
     }
 }

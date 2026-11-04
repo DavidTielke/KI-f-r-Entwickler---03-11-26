@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using PersonenApi.Data;
+using Backend.Data;
 
 #nullable disable
 
-namespace PersonenApi.Migrations
+namespace Backend.Migrations
 {
-    [DbContext(typeof(PersonDbContext))]
+    [DbContext(typeof(AppDbContext))]
     [Migration("20261103141749_InitialCreate")]
     partial class InitialCreate
     {
@@ -19,7 +19,7 @@ namespace PersonenApi.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
-            modelBuilder.Entity("PersonenApi.Models.Person", b =>
+            modelBuilder.Entity("Backend.Models.Person", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

@@ -10,7 +10,7 @@ RUN dotnet restore
 
 # Quellcode + Publish
 COPY . .
-RUN dotnet publish PersonenApi.csproj -c Release -o /app/publish
+RUN dotnet publish Backend.csproj -c Release -o /app/publish
 
 # ---------- Runtime ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -23,4 +23,4 @@ RUN mkdir -p /app/data && chown -R 1001:1001 /app/data
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "PersonenApi.dll"]
+ENTRYPOINT ["dotnet", "Backend.dll"]

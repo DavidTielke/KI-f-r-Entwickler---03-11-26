@@ -1,8 +1,8 @@
+using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PersonenApi.Models;
 
-namespace PersonenApi.Configurations;
+namespace Backend.Data.Configurations;
 
 public class PetConfiguration : IEntityTypeConfiguration<Pet>
 {
@@ -20,13 +20,10 @@ public class PetConfiguration : IEntityTypeConfiguration<Pet>
             .HasMaxLength(150);
 
         builder.Property(p => p.Species)
-            .IsRequired()
-            .HasConversion(
-                s => s.ToString(),
-                s => Enum.Parse<PetSpecies>(s));
+            .IsRequired();
 
-        builder.HasOne(p => p.Person)
-            .WithOne(p => p.Pet)
+        builder.HasOne<Person>()
+            .WithOne()
             .HasForeignKey<Pet>(p => p.PersonId)
             .OnDelete(DeleteBehavior.SetNull);
 

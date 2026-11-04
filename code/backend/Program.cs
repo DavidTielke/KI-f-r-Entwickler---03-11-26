@@ -1,40 +1,56 @@
+using Backend.Data;
 using Microsoft.EntityFrameworkCore;
-using PersonenApi.Data;
 
-var builder = WebApplication.CreateBuilder(args);
+var l_builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-builder.Services.AddControllers();
+l_builder.Services.AddOpenApi();
+l_builder.Services.AddControllers();
 
-var connectionString = builder.Configuration.GetConnectionString("PersonsDb")
+var l_connectionString = l_builder.Configuration.GetConnectionString("PersonsDb")
     ?? "Data Source=persons.db";
 
-builder.Services.AddDbContext<PersonDbContext>(options =>
-    options.UseSqlite(connectionString));
+l_builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(l_connectionString));
 
-const string FrontendOrigin = "http://localhost:5173";
-builder.Services.AddCors(options =>
+const string frontendOrigin = "http://localhost:5173";
+l_builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy => policy
-        .WithOrigins(FrontendOrigin)
+        .WithOrigins(frontendOrigin)
         .AllowAnyMethod()
         .AllowAnyHeader());
 });
 
-var app = builder.Build();
+var l_app = l_builder.Build();
 
-using (var scope = app.Services.CreateScope())
+using (var l_scope = l_app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<PersonDbContext>();
-    db.Database.Migrate();
+    var l_db = l_scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    l_db.Database.Migrate();
 }
 
-if (app.Environment.IsDevelopment())
+if (l_app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    l_app.MapOpenApi();
 }
 
-app.UseCors("AllowFrontend");
-app.MapControllers();
+l_app.UseCors("AllowFrontend");
+l_app.MapControllers();
 
-app.Run();
+// Test-only: exists only with EnableTestEndpoints=true and only resets *.tests.db files.
+if (l_app.Configuration["EnableTestEndpoints"] == "true")
+{
+    l_app.MapPost("/api/testdata/reset", async (AppDbContext db) =>
+    {
+        if (!l_connectionString.EndsWith(".tests.db", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.BadRequest("Der Reset ist nur gegen eine Testdatenbank (.tests.db) erlaubt.");
+        }
+
+        await TestData.Reset(db);
+
+        return Results.Ok();
+    });
+}
+
+l_app.Run();
