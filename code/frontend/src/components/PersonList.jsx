@@ -136,7 +136,7 @@ export default function PersonList({ persons, onEdit, onDelete, onReorder }) {
       <thead>
         <tr>
           <th aria-label="Reihenfolge" />
-          <th>ID 💩</th>
+          <th>ID 🦖</th>
           <th>Name</th>
           <th className="dt-table__num">Alter</th>
           <th className="dt-table__num" aria-label="Aktionen" />
