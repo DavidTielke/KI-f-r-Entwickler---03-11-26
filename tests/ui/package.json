@@ -1,0 +1,13 @@
+{
+  "name": "ui-tests",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
+  }
+}

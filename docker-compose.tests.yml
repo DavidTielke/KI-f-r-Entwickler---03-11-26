@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: ./code/backend
+      dockerfile: Dockerfile
+    container_name: personen-api-tests
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__PersonsDb: "Data Source=/app/data/personen.tests.db"
+      EnableTestEndpoints: "true"
+    volumes:
+      - persons-tests-data:/app/data
+    ports:
+      - "5077:8080"
+    restart: "no"
+
+  frontend:
+    build:
+      context: ./code/frontend
+      dockerfile: Dockerfile
+    container_name: personen-web-tests
+    depends_on:
+      - backend
+    ports:
+      - "8082:80"
+    restart: "no"
+
+volumes:
+  persons-tests-data:
