@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { IconClose } from './icons.jsx'
 
-export default function PersonForm({ initial, submitLabel, onSubmit, onClose }) {
+export default function PersonForm({ initial, initialPet, pets, submitLabel, onSubmit, onClose }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [age, setAge] = useState(initial != null ? String(initial.age) : '')
+  const [petId, setPetId] = useState(initialPet ? String(initialPet.id) : '')
   const [nameError, setNameError] = useState('')
   const [ageError, setAgeError] = useState('')
   const [apiError, setApiError] = useState('')
@@ -40,7 +41,9 @@ export default function PersonForm({ initial, submitLabel, onSubmit, onClose }) 
 
     setSaving(true)
     try {
-      await onSubmit({ name: name.trim(), age: Number(age) })
+      const payload = { name: name.trim(), age: Number(age) }
+      if (petId !== '') payload.petId = Number(petId)
+      await onSubmit(payload)
     } catch (err) {
       setApiError(err.message)
     } finally {
@@ -104,6 +107,28 @@ export default function PersonForm({ initial, submitLabel, onSubmit, onClose }) 
                 placeholder="z. B. 30"
               />
               {ageError !== '' && <div className="dt-field__error">{ageError}</div>}
+            </div>
+            <div className="dt-field--12">
+              <label className="dt-field__label" htmlFor="person-pet">
+                Haustier
+              </label>
+              <select
+                id="person-pet"
+                className="dt-select"
+                value={petId}
+                onChange={(e) => setPetId(e.target.value)}
+              >
+                <option value="">Kein Haustier</option>
+                {(pets ?? []).map((pet) => (
+                  <option
+                    key={pet.id}
+                    value={String(pet.id)}
+                    disabled={pet.personId != null && pet.personId !== initial?.id}
+                  >
+                    {pet.name} ({pet.species})
+                  </option>
+                ))}
+              </select>
             </div>
             {apiError !== '' && (
               <div className="dt-field--12">

@@ -26,3 +26,28 @@ Content-Type: application/json
 
 ### DELETE Person löschen
 DELETE {{endpoint}}/api/persons/1
+
+### GET alle Haustiere
+GET {{endpoint}}/api/pets
+
+### POST Haustier anlegen
+POST {{endpoint}}/api/pets
+Content-Type: application/json
+
+{
+  "name": "Rex",
+  "species": "Hund"
+}
+
+### PUT Haustier aktualisieren
+PUT {{endpoint}}/api/pets/1
+Content-Type: application/json
+
+{
+  "name": "Rex",
+  "species": "Hund",
+  "personId": 1
+}
+
+### DELETE Haustier löschen
+DELETE {{endpoint}}/api/pets/1

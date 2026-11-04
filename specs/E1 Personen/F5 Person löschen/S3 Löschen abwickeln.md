@@ -17,3 +17,6 @@ Mit dem Button „Löschen" wird die `DELETE`-Anfrage gesendet, die Person im Ba
 - Nach erfolgreichem Löschen wird die Personenliste neu geladen.
 - Die gelöschte Person ist nicht mehr in der Liste enthalten.
 - Der Zähler am Navigationseintrag zeigt die reduzierte Anzahl.
+- Ein zugeordnetes Haustier (falls vorhanden) bleibt in der Datenbank erhalten; das Backend löst nur die Verknüpfung (`Pets.PersonId` wird auf leer gesetzt).
+- Nach erfolgreichem Löschen wird die Haustierliste neu geladen.
+- Ein zuvor zugeordnetes Haustier (falls vorhanden) ist in der Haustierliste weiterhin enthalten und zeigt keine verknüpfte Person mehr.

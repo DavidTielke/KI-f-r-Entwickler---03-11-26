@@ -11,4 +11,6 @@ public class PersonRequest
     [Required(ErrorMessage = "Alter ist erforderlich.")]
     [Range(0, 150, ErrorMessage = "Alter muss zwischen 0 und 150 liegen.")]
     public int Age { get; set; }
+
+    public int? PetId { get; set; }
 }

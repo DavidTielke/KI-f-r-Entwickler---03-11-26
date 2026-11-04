@@ -37,6 +37,20 @@ public class PersonsController(PersonDbContext db) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PersonDto>> CreatePerson(PersonRequest request)
     {
+        if (request.PetId is int petId)
+        {
+            var requestedPet = await db.Pets.AsNoTracking().FirstOrDefaultAsync(p => p.Id == petId);
+            if (requestedPet is null)
+            {
+                return BadRequest("Das Haustier existiert nicht.");
+            }
+
+            if (requestedPet.PersonId is not null)
+            {
+                return BadRequest("Das Haustier ist bereits einer anderen Person zugeordnet.");
+            }
+        }
+
         var nextOrder = await db.Persons.CountAsync() + 1;
 
         var person = new Person
@@ -48,6 +62,13 @@ public class PersonsController(PersonDbContext db) : ControllerBase
 
         db.Persons.Add(person);
         await db.SaveChangesAsync();
+
+        if (request.PetId is int linkedPetId)
+        {
+            var pet = await db.Pets.SingleAsync(p => p.Id == linkedPetId);
+            pet.PersonId = person.Id;
+            await db.SaveChangesAsync();
+        }
 
         return CreatedAtAction(nameof(GetPerson), new { id = person.Id }, new PersonDto(person.Id, person.Name, person.Age));
     }
@@ -61,8 +82,43 @@ public class PersonsController(PersonDbContext db) : ControllerBase
             return NotFound();
         }
 
+        if (request.PetId is int targetPetId)
+        {
+            var targetPet = await db.Pets.AsNoTracking().FirstOrDefaultAsync(p => p.Id == targetPetId);
+            if (targetPet is null)
+            {
+                return BadRequest("Das Haustier existiert nicht.");
+            }
+
+            if (targetPet.PersonId is not null && targetPet.PersonId != person.Id)
+            {
+                return BadRequest("Das Haustier ist bereits einer anderen Person zugeordnet.");
+            }
+        }
+
         person.Name = request.Name.Trim();
         person.Age = request.Age;
+
+        if (request.PetId is int newPetId)
+        {
+            var newPet = await db.Pets.SingleAsync(p => p.Id == newPetId);
+            var previousPet = await db.Pets.FirstOrDefaultAsync(p => p.PersonId == person.Id && p.Id != newPetId);
+            if (previousPet is not null)
+            {
+                previousPet.PersonId = null;
+            }
+
+            newPet.PersonId = person.Id;
+        }
+        else
+        {
+            var currentPet = await db.Pets.FirstOrDefaultAsync(p => p.PersonId == person.Id);
+            if (currentPet is not null)
+            {
+                currentPet.PersonId = null;
+            }
+        }
+
         await db.SaveChangesAsync();
 
         return NoContent();

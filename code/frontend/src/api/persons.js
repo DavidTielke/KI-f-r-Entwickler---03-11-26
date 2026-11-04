@@ -14,7 +14,7 @@ async function request(url, options) {
       else if (body && body.errors) {
         const flat = Object.values(body.errors).flat()
         if (flat.length) message = flat.join(', ')
-      }
+      } else if (body && body.detail) message = body.detail
     } catch {
       /* nicht-JSON-Antwort */
     }

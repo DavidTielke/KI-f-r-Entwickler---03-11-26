@@ -37,6 +37,47 @@ namespace PersonenApi.Migrations
 
                     b.ToTable("Persons", (string)null);
                 });
+
+            modelBuilder.Entity("PersonenApi.Models.Pet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PersonId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Species")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId")
+                        .IsUnique();
+
+                    b.ToTable("Pets", (string)null);
+                });
+
+            modelBuilder.Entity("PersonenApi.Models.Pet", b =>
+                {
+                    b.HasOne("PersonenApi.Models.Person", "Person")
+                        .WithOne("Pet")
+                        .HasForeignKey("PersonenApi.Models.Pet", "PersonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("PersonenApi.Models.Person", b =>
+                {
+                    b.Navigation("Pet");
+                });
 #pragma warning restore 612, 618
         }
     }

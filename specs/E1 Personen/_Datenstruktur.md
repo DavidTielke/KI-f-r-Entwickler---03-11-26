@@ -11,4 +11,5 @@
 
 - Datenbank: SQLite über Entity Framework Core (Container `personen-api`, Volume `persons-data`).
 - `Order` wird beim Anlegen auf „aktuelle Anzahl + 1" gesetzt und anschließend ausschließlich über den Reorder-Endpunkt geändert (siehe `_Backend.md`).
-- Es existiert keine weitere Entität.
+- Die Verknüpfung zu Haustieren (Epic E2, Tabelle `Pets`) wird ausschließlich über `Pets.PersonId` (unique, nullable) geführt; auf `Persons` existiert kein eigenes Verknüpfungsfeld.
+- Löschregel: Wird eine `Person` gelöscht, bleibt das zugeordnete Haustier erhalten; nur die Verknüpfung wird gelöst (`Pets.PersonId` wird auf leer gesetzt).
