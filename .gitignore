@@ -43,3 +43,4 @@ appsettings.Development.json
 Thumbs.db
 desktop.ini
 *.sw?
+tests/ui/test-results-docs-anforderungen/

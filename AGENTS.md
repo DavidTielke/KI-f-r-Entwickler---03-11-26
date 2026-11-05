@@ -4,12 +4,15 @@ Diese Dateien IMMER lesen, wenn du etwas an bestimmten Teilen der Anwendung mach
 - /harness/_uitests.md - IMMER lesen, wenn du UI-Tests (Playwright, End-to-End) in tests/ui/ schreibst, änderst oder ausführst.
 - /harness/_requirements.md - IMMER lesen, wenn du in specs/ arbeitest (Epics, Features, Stories, Akzeptanzkriterien).
 - /harness/_ideas.md - IMMER lesen, wenn ein Ideen-Dialog gestartet wird (der Stakeholder will eine neue Feature-Idee besprechen) oder in ideas/ gearbeitet wird.
+- /harness/_userdocs.md - IMMER lesen, wenn du die Anwenderdokumentation in docs/user/ schreibst oder änderst (Texte, Screenshots, FAQ).
+- /harness/_devdocs.md - IMMER lesen, wenn du die Entwicklerdokumentation in docs/dev/ schreibst oder änderst (Architektur, Bausteine, API, Designregeln, Geschäftsprozesse).
 
 # Dev Workflow
 1. Code schreiben
 2. IMMER wenn der Code geändert wird, zieh AUF JEDEN FALL UNBEDINGT die entsprechenden Specs nach ODER erstell neue dazu
-3. git commit machen
-4. docker compose up machen
+3. analyse_all.py ausführen und alle gefundenen Issues fixen, auch die älteren
+4. git commit machen
+5. docker compose up machen
 
 # Test-Regeln
 - Für das Epic E3 „Software Factory" (`specs/E3 Software Factory/`) werden **nie** Tests geschrieben — weder UI-Tests noch andere Testarten. Dies gilt dauerhaft, auch wenn dort neue Stories oder Kriterien entstehen.
